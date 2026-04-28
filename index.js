@@ -171,135 +171,124 @@ client.on(Events.MessageCreate, (message) => {
 // ===============================
 client.on(Events.InteractionCreate, async (interaction) => {
 
-  // Step 0：開始
+  // =========================
+  // STEP 0
+  // =========================
   if (interaction.isButton() && interaction.customId === "start_register") {
-    userProgress.set(interaction.user.id, {
-      step: 1,
-      data: {}
-    });
+    userProgress.set(interaction.user.id, { step: 1, data: {} });
 
     return interaction.reply({
-      content:
-        "🪸 歡迎來到比奇堡入籍登記手續\n\n請確認是否願意正式成為比奇堡居民。",
+      content: "是否入籍比奇堡？",
       ephemeral: true,
       components: [
         new ActionRowBuilder().addComponents(
           new ButtonBuilder()
             .setCustomId("step1_yes")
-            .setLabel("我願意入籍")
+            .setLabel("我願意")
             .setStyle(ButtonStyle.Primary)
         )
       ]
     });
   }
 
-  // Step 1
+  // =========================
+  // STEP 1
+  // =========================
   if (interaction.isButton() && interaction.customId === "step1_yes") {
-    const state = userProgress.get(interaction.user.id);
-    if (!state) return;
+    const state = userProgress.get(interaction.user.id) || { data: {} };
 
     state.step = 2;
+    userProgress.set(interaction.user.id, state);
 
     return interaction.update({
-      content: "🧠 請選擇你的情緒類型",
+      content: "選擇身份",
       components: [
         new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId("step2_emotion")
-            .setPlaceholder("選擇身份")
             .addOptions(
-              {
-                label: "愛哭男孩",
-                value: "boy"
-              },
-              {
-                label: "愛哭女孩",
-                value: "girl"
-              }
+              { label: "愛哭男孩", value: "boy" },
+              { label: "愛哭女孩", value: "girl" }
             )
         )
       ]
     });
   }
 
-  // Step 2
+  // =========================
+  // STEP 2
+  // =========================
   if (
     interaction.isStringSelectMenu() &&
     interaction.customId === "step2_emotion"
   ) {
     const state = userProgress.get(interaction.user.id);
-    if (!state) return;
+
+    if (!state) {
+      return interaction.reply({
+        content: "⚠️ 流程已過期，請重新開始",
+        ephemeral: true
+      });
+    }
 
     state.data.emotion = interaction.values[0];
     state.step = 3;
+    userProgress.set(interaction.user.id, state);
 
     return interaction.update({
-      content: "🌊 你來比奇堡的目的？（可複選）",
+      content: "選目的",
       components: [
         new ActionRowBuilder().addComponents(
           new StringSelectMenuBuilder()
             .setCustomId("step3_purpose")
             .setMinValues(1)
             .setMaxValues(2)
-            .setPlaceholder("選擇目的")
             .addOptions(
-              {
-                label: "閒魚",
-                value: "chill"
-              },
-              {
-                label: "遊魚",
-                value: "play"
-              }
+              { label: "閒魚", value: "chill" },
+              { label: "遊魚", value: "play" }
             )
         )
       ]
     });
   }
-  });
 
-  // Step 3 完成
+  // =========================
+  // STEP 3 FINAL
+  // =========================
   if (
-  interaction.isStringSelectMenu() &&
-  interaction.customId === "step3_purpose"
-) {
-  const state = userProgress.get(interaction.user.id);
-  if (!state) return;
+    interaction.isStringSelectMenu() &&
+    interaction.customId === "step3_purpose"
+  ) {
+    const state = userProgress.get(interaction.user.id);
+    if (!state) return;
 
-  state.data.purpose = interaction.values;
+    state.data.purpose = interaction.values;
 
-  const member = interaction.member;
+    const member = interaction.member;
 
-  try {
-    const rolesToAdd = [
-      roleMap[state.data.emotion],
-      ...state.data.purpose.map(p => roleMap[p]),
-      citizenRoleId
-    ].filter(Boolean);
+    try {
+      const rolesToAdd = [
+        roleMap[state.data.emotion],
+        ...state.data.purpose.map(p => roleMap[p]),
+        citizenRoleId
+      ].filter(Boolean);
 
-    for (const roleId of rolesToAdd) {
-      const role = interaction.guild.roles.cache.get(roleId);
-
-      if (!role) {
-        console.log("❌ 找不到 role:", roleId);
-        continue;
+      for (const roleId of rolesToAdd) {
+        const role = interaction.guild.roles.cache.get(roleId);
+        if (role) await member.roles.add(role);
       }
 
-      await member.roles.add(role);
-      console.log("✅ 已給身分組:", role.name);
+    } catch (err) {
+      console.error(err);
     }
 
-  } catch (err) {
-    console.error("❌ role error:", err);
+    userProgress.delete(interaction.user.id);
+
+    return interaction.update({
+      content: "🎉 入籍完成！",
+      components: []
+    });
   }
+});
 
-  userProgress.delete(interaction.user.id);
-
-  return interaction.update({
-    content: "🎉 入籍完成！歡迎正式成為比奇堡居民！",
-    components: []
-  });
-}
-
-// ===============================
 client.login(process.env.DISCORD_TOKEN);
