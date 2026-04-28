@@ -34,7 +34,7 @@ const roleMap = {
   play: "1498397310390894643"
 };
 
-const citizenRoleId = "1498398881501942010";
+const citizenRoleId = "1498395459390144532";
 
 // ===============================
 // state（問卷進度）
