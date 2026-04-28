@@ -27,6 +27,15 @@ const entryChannelId = "1498422172903931956"; // 入籍頻道
 const welcomeChannelId = "1498390949351657753"; // 歡迎頻道
 const announcementChannelId = "1498418934465040465"; // 公告頻道
 
+const roleMap = {
+  boy: "BOY_ROLE_ID",
+  girl: "GIRL_ROLE_ID",
+  chill: "CHILL_ROLE_ID",
+  play: "PLAY_ROLE_ID"
+};
+
+const citizenRoleId = "CITIZEN_ROLE_ID";
+
 // ===============================
 // state（問卷進度）
 // ===============================
@@ -247,34 +256,50 @@ client.on(Events.InteractionCreate, async (interaction) => {
       ]
     });
   }
+  });
 
   // Step 3 完成
   if (
-    interaction.isStringSelectMenu() &&
-    interaction.customId === "step3_purpose"
-  ) {
-    const state = userProgress.get(interaction.user.id);
-    if (!state) return;
+  interaction.isStringSelectMenu() &&
+  interaction.customId === "step3_purpose"
+) {
+  const state = userProgress.get(interaction.user.id);
+  if (!state) return;
 
-    state.data.purpose = interaction.values;
+  state.data.purpose = interaction.values;
 
-    const member = interaction.member;
-    const role = interaction.guild.roles.cache.find(
-      (r) => r.name === "比奇堡居民"
-    );
+  const member = interaction.member;
 
-    if (role) {
-      await member.roles.add(role).catch(() => {});
+  try {
+    const rolesToAdd = [
+      roleMap[state.data.emotion],
+      ...state.data.purpose.map(p => roleMap[p]),
+      citizenRoleId
+    ].filter(Boolean);
+
+    for (const roleId of rolesToAdd) {
+      const role = interaction.guild.roles.cache.get(roleId);
+
+      if (!role) {
+        console.log("❌ 找不到 role:", roleId);
+        continue;
+      }
+
+      await member.roles.add(role);
+      console.log("✅ 已給身分組:", role.name);
     }
 
-    userProgress.delete(interaction.user.id);
-
-    return interaction.update({
-      content: "🎉 入籍完成！歡迎正式成為比奇堡居民！",
-      components: []
-    });
+  } catch (err) {
+    console.error("❌ role error:", err);
   }
-});
+
+  userProgress.delete(interaction.user.id);
+
+  return interaction.update({
+    content: "🎉 入籍完成！歡迎正式成為比奇堡居民！",
+    components: []
+  });
+}
 
 // ===============================
 client.login(process.env.DISCORD_TOKEN);
