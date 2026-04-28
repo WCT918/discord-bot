@@ -28,13 +28,13 @@ const welcomeChannelId = "1498390949351657753"; // 歡迎頻道
 const announcementChannelId = "1498418934465040465"; // 公告頻道
 
 const roleMap = {
-  boy: "BOY_ROLE_ID",
-  girl: "GIRL_ROLE_ID",
-  chill: "CHILL_ROLE_ID",
-  play: "PLAY_ROLE_ID"
+  boy: "1498400347956187307",
+  girl: "1498400468219727902",
+  chill: "1498396258090356796",
+  play: "1498397310390894643"
 };
 
-const citizenRoleId = "CITIZEN_ROLE_ID";
+const citizenRoleId = "1498398881501942010";
 
 // ===============================
 // state（問卷進度）
