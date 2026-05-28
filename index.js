@@ -294,7 +294,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-const fs = require("fs");
 
 // ===============================
 // ⑤ 數數系統
