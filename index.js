@@ -20,12 +20,15 @@ const client = new Client({
   partials: [Partials.Message, Partials.Reaction, Partials.User]
 });
 
+const fs = require("fs");
+
 // ===============================
 // CONFIG
 // ===============================
 const entryChannelId = "1498422172903931956"; // 入籍頻道
 const welcomeChannelId = "1498390949351657753"; // 歡迎頻道
 const announcementChannelId = "1498418934465040465"; // 公告頻道
+const countingChannelId = "1509594295722836089"; // 數數頻道
 
 const roleMap = {
   boy: "1498400347956187307",
@@ -289,6 +292,120 @@ client.on(Events.InteractionCreate, async (interaction) => {
       components: []
     });
   }
+});
+
+const fs = require("fs");
+
+// ===============================
+// ⑤ 數數系統
+// ===============================
+
+
+
+let currentNumber = 1;
+
+// ===============================
+// 讀取存檔
+// ===============================
+if (fs.existsSync("./count.json")) {
+  try {
+    const data = JSON.parse(fs.readFileSync("./count.json"));
+
+    if (typeof data.currentNumber === "number") {
+      currentNumber = data.currentNumber;
+    }
+  } catch (err) {
+    console.log("count.json 讀取失敗");
+  }
+}
+
+// ===============================
+// 儲存存檔
+// ===============================
+function saveCount() {
+  fs.writeFileSync(
+    "./count.json",
+    JSON.stringify({
+      currentNumber: currentNumber
+    })
+  );
+}
+
+// ===============================
+// 數數監聽
+// ===============================
+client.on(Events.MessageCreate, async (message) => {
+
+  // 忽略 bot
+  if (message.author.bot) return;
+
+  // 限定頻道
+  if (message.channel.id !== countingChannelId) return;
+
+  const input = message.content.trim();
+
+  let result;
+
+  // ===========================
+  // 嘗試計算算術式
+  // ===========================
+  try {
+
+    // 安全過濾（只允許數字與運算符）
+    if (!/^[0-9+\-*/().\s]+$/.test(input)) {
+
+      await message.reply("這不是數字吧? 請重新輸入");
+      return;
+    }
+
+    result = eval(input);
+
+  } catch {
+
+    await message.reply("這不是數字吧? 請重新輸入");
+    return;
+  }
+
+  // ===========================
+  // 必須是有限數字
+  // ===========================
+  if (
+    typeof result !== "number" ||
+    !isFinite(result)
+  ) {
+    await message.reply("這不是數字吧? 請重新輸入");
+    return;
+  }
+
+  // 整數化
+  result = Number(result);
+
+  // ===========================
+  // 正確
+  // ===========================
+  if (result === currentNumber) {
+
+    await message.react("✅");
+
+    currentNumber++;
+
+    saveCount();
+
+    return;
+  }
+
+  // ===========================
+  // 錯誤
+  // ===========================
+  await message.react("❌");
+
+  currentNumber = 1;
+
+  saveCount();
+
+  await message.channel.send(
+    "🚨逼逼逼，輸搓啦!!! 請從1重新開始輸入~"
+  );
 });
 
 client.login(process.env.DISCORD_TOKEN);
